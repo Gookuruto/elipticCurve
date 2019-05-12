@@ -15,6 +15,16 @@ type EdwardCurves struct {
 	p                   *big.Int
 }
 
+func (p *Point) ComparePoints(y *Point) bool {
+	first := p.x.X.Cmp(y.x.X)
+	second := p.y.X.Cmp(y.y.X)
+	if first == 0 && second == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
 func NewCurve(p, d *big.Int) *EdwardCurves {
 	cyclicGroup.NewGroup(p)
 	edwards := new(EdwardCurves)
@@ -57,5 +67,55 @@ func (curve *EdwardCurves) ScalarMul(p *Point, scalar *big.Int) *Point {
 		Q = curve.AddPoints(Q, p)
 	}
 	return Q
+
+}
+
+// P=[Px,Py]
+// -P = [Px,-Py] -> -Py mod p = p-Py
+func (curve *EdwardCurves) Neg(p *Point) *Point {
+	pt := new(Point)
+	pt.x = p.x
+	pt.y = cyclicGroup.New(new(big.Int).Sub(curve.p, p.y.X))
+
+	return pt
+}
+
+func (curve *EdwardCurves) CreatePoint(x, y *big.Int) *Point {
+	p := new(Point)
+	p.x = cyclicGroup.New(x)
+	p.y = cyclicGroup.New(y)
+	return p
+}
+
+func (curve *EdwardCurves) IsOnCurve(p *Point) bool {
+	x, y := p.x, p.y
+	x1, y1 := x.X, y.X
+	first := new(big.Int).Mod(new(big.Int).Add(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)), curve.p)
+	second := new(big.Int).Mod(curve.d.X.Add(big.NewInt(1), curve.d.X.Mul(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil))), curve.p)
+	if first.Cmp(second) == 0 {
+		return true
+
+	} else {
+		return false
+	}
+
+}
+
+func (curve *EdwardCurves) order(g *Point) *big.Int {
+	basePoint := curve.CreatePoint(big.NewInt(0), big.NewInt(1))
+	if !curve.IsOnCurve(g) {
+		return big.NewInt(-1)
+
+	}
+	if g.ComparePoints(basePoint) {
+		return big.NewInt(-1)
+	}
+	for i := big.NewInt(2); i.Cmp(curve.p) < 0; i.Add(i, curve.One.X) {
+		if curve.ScalarMul(g, i).ComparePoints(basePoint) {
+			return i
+		}
+
+	}
+	return big.NewInt(1)
 
 }
