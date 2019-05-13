@@ -64,13 +64,13 @@ func main() {
 	p := big.NewInt(17)
 	ec := edwards.NewCurve(p, d)
 	g := ec.CreatePoint(big.NewInt(7), big.NewInt(12))
-	if !ec.IsOnCurve(g) {
+	/*if !ec.IsOnCurve(g) {
 		fmt.Println("g is not on curve")
-	}
+	}*/
 	message := ec.CreatePoint(big.NewInt(12), big.NewInt(7))
-	if !ec.IsOnCurve(message) {
+	/*if !ec.IsOnCurve(message) {
 		fmt.Println("message is not on curve")
-	}
+	}*/
 	eg := NewElGamal(ec, g)
 	fmt.Println(eg.n)
 	temppriv, _ := rand.Int(rand.Reader, eg.n.Sub(eg.n, big.NewInt(1)))

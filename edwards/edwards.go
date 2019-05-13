@@ -38,12 +38,16 @@ func NewCurve(p, d *big.Int) *EdwardCurves {
 }
 
 func (curve *EdwardCurves) AddPoints(p1, p2 *Point) *Point {
-	x1, y1 := p1.x, p1.y
-	x2, y2 := p2.x, p2.y
+	x1, y1 :=new(cyclicGroup.Z),new(cyclicGroup.Z)
+	*x1 = *p1.x
+	*y1 = *p1.y
+	x2, y2 :=new(cyclicGroup.Z),new(cyclicGroup.Z)
+	*x2 = *p2.x
+	*y2= *p2.y
 	xFirstHalf := (x1.Mul(y2)).Add(y1.Mul(x2))
-	yFirstHalf := (x1.Mul(y2)).Sub(y1.Mul(x2))
+	yFirstHalf := (y1.Mul(y2)).Sub(x1.Mul(x2))
 
-	xSecondHalf := curve.One.Add(curve.d.Mul(x1.Mul(y1.Mul(x2.Mul(y2)))))
+	xSecondHalf := curve.d.Mul(x1.Mul(y1.Mul(x2.Mul(y2))))
 	ySecondHalf := curve.One.Sub(curve.d.Mul(x1.Mul(y1.Mul(x2.Mul(y2)))))
 
 	x3 := xFirstHalf.TrueDiv(xSecondHalf)
@@ -53,8 +57,10 @@ func (curve *EdwardCurves) AddPoints(p1, p2 *Point) *Point {
 
 }
 
-func (curve *EdwardCurves) ScalarMul(p *Point, scalar *big.Int) *Point {
-
+func (curve *EdwardCurves) ScalarMul(p *Point, scal *big.Int) *Point {
+	scalar:=new(big.Int)
+	scalar.Set(scal)
+	Q := new(Point)
 	if scalar.Cmp(big.NewInt(0)) == 0 {
 		pt := Point{cyclicGroup.New(big.NewInt(0)), cyclicGroup.New(big.NewInt(1))}
 		return &pt
@@ -62,7 +68,7 @@ func (curve *EdwardCurves) ScalarMul(p *Point, scalar *big.Int) *Point {
 	if scalar.Cmp(big.NewInt(1)) == 0 {
 		return p
 	}
-	Q := curve.ScalarMul(p, scalar.Div(scalar, big.NewInt(2)))
+	Q = curve.ScalarMul(p, scalar.Div(scalar, big.NewInt(2)))
 	Q = curve.AddPoints(Q, Q)
 	if scalar.Mod(scalar, big.NewInt(2)).Cmp(big.NewInt(0)) != 0 {
 		Q = curve.AddPoints(Q, p)
@@ -71,12 +77,16 @@ func (curve *EdwardCurves) ScalarMul(p *Point, scalar *big.Int) *Point {
 
 }
 
+func (p *Point) PrintPoint() {
+	fmt.Println("x= ", p.x.X, " y= ", p.y.X)
+}
+
 // P=[Px,Py]
 // -P = [Px,-Py] -> -Py mod p = p-Py
 func (curve *EdwardCurves) Neg(p *Point) *Point {
 	pt := new(Point)
-	pt.x = p.x
-	pt.y = cyclicGroup.New(new(big.Int).Sub(curve.p, p.y.X))
+	pt.x = cyclicGroup.New(new(big.Int).Sub(curve.p, p.x.X))
+	pt.y = p.y
 
 	return pt
 }
@@ -89,10 +99,12 @@ func (curve *EdwardCurves) CreatePoint(x, y *big.Int) *Point {
 }
 
 func (curve *EdwardCurves) IsOnCurve(p *Point) bool {
-	x, y := p.x, p.y
-	x1, y1 := x.X, y.X
+	x1, y1 := new(big.Int),new(big.Int)
+	x,y := p.x, p.y
+	x1.Set(x.X)
+	y1.Set(y.X)
 	first := new(big.Int).Mod(new(big.Int).Add(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)), curve.p)
-	second := new(big.Int).Mod(curve.d.X.Add(big.NewInt(1), curve.d.X.Mul(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil))), curve.p)
+	second := new(big.Int).Mod(curve.d.X.Add(big.NewInt(1), curve.d.X.Mul(curve.d.X,new(big.Int).Mul(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)))), curve.p)
 	if first.Cmp(second) == 0 {
 		return true
 
@@ -105,20 +117,20 @@ func (curve *EdwardCurves) IsOnCurve(p *Point) bool {
 func (curve *EdwardCurves) Order(g *Point) *big.Int {
 	basePoint := curve.CreatePoint(big.NewInt(0), big.NewInt(1))
 	if !curve.IsOnCurve(g) {
-		//return big.NewInt(-1)
+		return big.NewInt(-1)
 
 	}
 	if g.ComparePoints(basePoint) {
-		//return big.NewInt(-1)
+		return big.NewInt(-1)
 	}
 	fmt.Println("p= ", curve.p)
 	start := big.NewInt(2)
 	end := curve.p
 	fmt.Println(end)
-
-	for i := new(big.Int).Set(start); i.Cmp(end) < 0; i.Add(i, one) {
-		fmt.Println(i)
-		if curve.ScalarMul(g, i).ComparePoints(basePoint) {
+	for i:= new(big.Int).Set(start);end.Cmp(i) > 0; i.Add(one, i) {
+		temp:=curve.ScalarMul(g, i)
+		fmt.Println(temp.x.X,temp.y.X)
+		if temp.ComparePoints(basePoint) {
 			return i
 		}
 
