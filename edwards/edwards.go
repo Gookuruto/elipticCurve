@@ -1,9 +1,10 @@
-package Edwards
+package edwards
 
 import (
+	"fmt"
 	"math/big"
 
-	"github.com/Gookuruto/Eliptic_Curve/cyclicGroup"
+	"github.com/Gookuruto/elipticCurve/cyclicGroup"
 )
 
 type Point struct {
@@ -33,7 +34,7 @@ func NewCurve(p, d *big.Int) *EdwardCurves {
 	edwards.One = cyclicGroup.New(big.NewInt(1))
 	edwards.Zero = cyclicGroup.New(big.NewInt(0))
 
-	return new(EdwardCurves)
+	return edwards
 }
 
 func (curve *EdwardCurves) AddPoints(p1, p2 *Point) *Point {
@@ -101,16 +102,22 @@ func (curve *EdwardCurves) IsOnCurve(p *Point) bool {
 
 }
 
-func (curve *EdwardCurves) order(g *Point) *big.Int {
+func (curve *EdwardCurves) Order(g *Point) *big.Int {
 	basePoint := curve.CreatePoint(big.NewInt(0), big.NewInt(1))
 	if !curve.IsOnCurve(g) {
-		return big.NewInt(-1)
+		//return big.NewInt(-1)
 
 	}
 	if g.ComparePoints(basePoint) {
-		return big.NewInt(-1)
+		//return big.NewInt(-1)
 	}
-	for i := big.NewInt(2); i.Cmp(curve.p) < 0; i.Add(i, curve.One.X) {
+	fmt.Println("p= ", curve.p)
+	start := big.NewInt(2)
+	end := curve.p
+	fmt.Println(end)
+
+	for i := new(big.Int).Set(start); i.Cmp(end) < 0; i.Add(i, one) {
+		fmt.Println(i)
 		if curve.ScalarMul(g, i).ComparePoints(basePoint) {
 			return i
 		}
@@ -119,3 +126,5 @@ func (curve *EdwardCurves) order(g *Point) *big.Int {
 	return big.NewInt(1)
 
 }
+
+var one = big.NewInt(1)
