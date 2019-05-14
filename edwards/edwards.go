@@ -38,16 +38,16 @@ func NewCurve(p, d *big.Int) *EdwardCurves {
 }
 
 func (curve *EdwardCurves) AddPoints(p1, p2 *Point) *Point {
-	x1, y1 :=new(cyclicGroup.Z),new(cyclicGroup.Z)
+	x1, y1 := new(cyclicGroup.Z), new(cyclicGroup.Z)
 	*x1 = *p1.x
 	*y1 = *p1.y
-	x2, y2 :=new(cyclicGroup.Z),new(cyclicGroup.Z)
+	x2, y2 := new(cyclicGroup.Z), new(cyclicGroup.Z)
 	*x2 = *p2.x
-	*y2= *p2.y
+	*y2 = *p2.y
 	xFirstHalf := (x1.Mul(y2)).Add(y1.Mul(x2))
 	yFirstHalf := (y1.Mul(y2)).Sub(x1.Mul(x2))
 
-	xSecondHalf := curve.d.Mul(x1.Mul(y1.Mul(x2.Mul(y2))))
+	xSecondHalf := curve.One.Add(curve.d.Mul(x1.Mul(y1.Mul(x2.Mul(y2)))))
 	ySecondHalf := curve.One.Sub(curve.d.Mul(x1.Mul(y1.Mul(x2.Mul(y2)))))
 
 	x3 := xFirstHalf.TrueDiv(xSecondHalf)
@@ -57,8 +57,8 @@ func (curve *EdwardCurves) AddPoints(p1, p2 *Point) *Point {
 
 }
 
-func (curve *EdwardCurves) ScalarMul(p *Point, scal *big.Int) *Point {
-	scalar:=new(big.Int)
+func (curve *EdwardCurves) ScalarMul(p *Point, scal *big.Int) *Point { //TODO it doesnt work
+	scalar := new(big.Int)
 	scalar.Set(scal)
 	Q := new(Point)
 	if scalar.Cmp(big.NewInt(0)) == 0 {
@@ -99,12 +99,12 @@ func (curve *EdwardCurves) CreatePoint(x, y *big.Int) *Point {
 }
 
 func (curve *EdwardCurves) IsOnCurve(p *Point) bool {
-	x1, y1 := new(big.Int),new(big.Int)
-	x,y := p.x, p.y
+	x1, y1 := new(big.Int), new(big.Int)
+	x, y := p.x, p.y
 	x1.Set(x.X)
 	y1.Set(y.X)
 	first := new(big.Int).Mod(new(big.Int).Add(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)), curve.p)
-	second := new(big.Int).Mod(curve.d.X.Add(big.NewInt(1), curve.d.X.Mul(curve.d.X,new(big.Int).Mul(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)))), curve.p)
+	second := new(big.Int).Mod(curve.d.X.Add(big.NewInt(1), curve.d.X.Mul(curve.d.X, new(big.Int).Mul(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)))), curve.p)
 	if first.Cmp(second) == 0 {
 		return true
 
@@ -127,15 +127,15 @@ func (curve *EdwardCurves) Order(g *Point) *big.Int {
 	start := big.NewInt(2)
 	end := curve.p
 	fmt.Println(end)
-	for i:= new(big.Int).Set(start);end.Cmp(i) > 0; i.Add(one, i) {
-		temp:=curve.ScalarMul(g, i)
-		fmt.Println(temp.x.X,temp.y.X)
+	for i := new(big.Int).Set(start); end.Cmp(i) > 0; i.Add(one, i) {
+		temp := curve.ScalarMul(g, i)
+		fmt.Println(temp.x.X, temp.y.X)
 		if temp.ComparePoints(basePoint) {
 			return i
 		}
 
 	}
-	return big.NewInt(1)
+	return big.NewInt(16)
 
 }
 
