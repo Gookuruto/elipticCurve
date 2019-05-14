@@ -3,6 +3,7 @@ package edwards
 import (
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/Gookuruto/elipticCurve/cyclicGroup"
 )
@@ -37,7 +38,7 @@ func NewCurve(p, d *big.Int) *EdwardCurves {
 	return edwards
 }
 
-func (curve *EdwardCurves) AddPoints(p1, p2 *Point) *Point {
+func (curve *EdwardCurves) AddPoints(p1, p2 Point) *Point {
 	x1, y1 := new(cyclicGroup.Z), new(cyclicGroup.Z)
 	*x1 = *p1.x
 	*y1 = *p1.y
@@ -57,7 +58,7 @@ func (curve *EdwardCurves) AddPoints(p1, p2 *Point) *Point {
 
 }
 
-func (curve *EdwardCurves) ScalarMul(p *Point, scal *big.Int) *Point { //TODO it doesnt work
+func (curve *EdwardCurves) ScalarMul(p Point, scal *big.Int) *Point { //TODO it doesnt work
 	scalar := new(big.Int)
 	scalar.Set(scal)
 	Q := new(Point)
@@ -66,12 +67,14 @@ func (curve *EdwardCurves) ScalarMul(p *Point, scal *big.Int) *Point { //TODO it
 		return &pt
 	}
 	if scalar.Cmp(big.NewInt(1)) == 0 {
-		return p
+		ptn:= Point{cyclicGroup.New(p.x.X), cyclicGroup.New(p.y.X)}
+		return &ptn
 	}
-	Q = curve.ScalarMul(p, scalar.Div(scalar, big.NewInt(2)))
-	Q = curve.AddPoints(Q, Q)
-	if scalar.Mod(scalar, big.NewInt(2)).Cmp(big.NewInt(0)) != 0 {
-		Q = curve.AddPoints(Q, p)
+	halfScalar :=new(big.Int).Div(scalar, big.NewInt(2))
+	Q = curve.ScalarMul(p, halfScalar)
+	Q = curve.AddPoints(*Q, *Q)
+	if new(big.Int).Mod(scalar, big.NewInt(2)).Cmp(big.NewInt(0)) != 0 {
+		Q = curve.AddPoints(*Q, p)
 	}
 	return Q
 
@@ -104,7 +107,7 @@ func (curve *EdwardCurves) IsOnCurve(p *Point) bool {
 	x1.Set(x.X)
 	y1.Set(y.X)
 	first := new(big.Int).Mod(new(big.Int).Add(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)), curve.p)
-	second := new(big.Int).Mod(curve.d.X.Add(big.NewInt(1), curve.d.X.Mul(curve.d.X, new(big.Int).Mul(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)))), curve.p)
+	second := new(big.Int).Mod(new(big.Int).Add(big.NewInt(1), new(big.Int).Mul(curve.d.X, new(big.Int).Mul(x1.Exp(x1, big.NewInt(2), nil), y1.Exp(y1, big.NewInt(2), nil)))), curve.p)
 	if first.Cmp(second) == 0 {
 		return true
 
@@ -128,7 +131,7 @@ func (curve *EdwardCurves) Order(g *Point) *big.Int {
 	end := curve.p
 	fmt.Println(end)
 	for i := new(big.Int).Set(start); end.Cmp(i) > 0; i.Add(one, i) {
-		temp := curve.ScalarMul(g, i)
+		temp := curve.ScalarMul(*g, i)
 		fmt.Println(temp.x.X, temp.y.X)
 		if temp.ComparePoints(basePoint) {
 			return i
@@ -137,6 +140,17 @@ func (curve *EdwardCurves) Order(g *Point) *big.Int {
 	}
 	return big.NewInt(16)
 
+}
+
+func (p *Point)ToString() string{
+	var s strings.Builder
+	s.WriteString("Point( ")
+	s.WriteString("x = ")
+	s.WriteString(p.x.X.String())
+	s.WriteString(" y= ")
+	s.WriteString(p.y.X.String())
+	s.WriteString(" )")
+	return s.String()
 }
 
 var one = big.NewInt(1)

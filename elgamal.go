@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-
 	//	"github.com/Gookuruto/elipticCurve/cyclicGroup"
 
 	"./edwards"
@@ -26,8 +25,8 @@ func NewElGamal(curve *edwards.EdwardCurves, g *edwards.Point) *ElGamal {
 }
 
 func (el *ElGamal) generatePublicKey(privKey *big.Int) *edwards.Point {
-	x := el.curve.ScalarMul(el.g, privKey)
-	fmt.Println("Public key is ", x.PrintPoint)
+	x := el.curve.ScalarMul(*el.g, privKey)
+	fmt.Println("Public key is ", x.ToString())
 	return x
 
 }
@@ -39,16 +38,16 @@ func (el *ElGamal) Encrypt(p *edwards.Point, pubKey *edwards.Point, rint *big.In
 		p.PrintPoint()
 		return nil, nil
 
-	}
-	if !el.curve.IsOnCurve(pubKey) {
+	}*/
+	/*if !el.curve.IsOnCurve(pubKey) {
 		fmt.Println("key not on curve")
 		pubKey.PrintPoint()
 		return nil, nil
 	}*/
-	cipherFirstPart := el.curve.ScalarMul(el.g, rint)
-	cipherSecondPart := el.curve.AddPoints(p, el.curve.ScalarMul(pubKey, rint))
-	fmt.Println("Encrypting point ", p, " with public key ", pubKey)
-	fmt.Println("Encrypted to ", cipherFirstPart, cipherSecondPart)
+	cipherFirstPart := el.curve.ScalarMul(*el.g, rint)
+	cipherSecondPart := el.curve.AddPoints(*p, *el.curve.ScalarMul(*pubKey, rint))
+	fmt.Println("Encrypting point ", p.ToString(), " with public key ", pubKey.ToString())
+	fmt.Println("Encrypted to ", cipherFirstPart.ToString(), cipherSecondPart.ToString())
 	return cipherFirstPart, cipherSecondPart
 
 }
@@ -58,9 +57,9 @@ func (el *ElGamal) Decrypt(cipherPartOne, cipherPartTwo *edwards.Point, privKey 
 	/*if !el.curve.IsOnCurve(cipherPartOne) || !el.curve.IsOnCurve(cipherPartTwo) {
 		return nil
 	}*/
-	decoded := el.curve.AddPoints(cipherPartTwo, el.curve.Neg(el.curve.ScalarMul(cipherPartOne, privKey)))
-	fmt.Println("Decoding ", cipherPartOne, " ", cipherPartTwo, " with private key ", privKey)
-	fmt.Println("Decoded message ", decoded)
+	decoded := el.curve.AddPoints(*cipherPartTwo, *el.curve.Neg(el.curve.ScalarMul(*cipherPartOne, privKey)))
+	fmt.Println("Decoding ", cipherPartOne.ToString(), " ", cipherPartTwo.ToString(), " with private key ", privKey)
+	fmt.Println("Decoded message ", decoded.ToString())
 	return decoded
 }
 
@@ -74,7 +73,7 @@ func main() {
 	}*/
 	message := ec.CreatePoint(big.NewInt(12), big.NewInt(7))
 
-	res := ec.ScalarMul(g, big.NewInt(3))
+	res := ec.ScalarMul(*g, big.NewInt(3))
 	res.PrintPoint()
 	/*if !ec.IsOnCurve(message) {
 		fmt.Println("message is not on curve")
@@ -82,14 +81,15 @@ func main() {
 	eg := NewElGamal(ec, g)
 	fmt.Println(eg.n)
 	fmt.Println("Generating keys")
-	temppriv, _ := rand.Int(rand.Reader, eg.n.Sub(eg.n, big.NewInt(1)))
-	temptrand, _ := rand.Int(rand.Reader, eg.n.Sub(eg.n, big.NewInt(1)))
-	priv_key := temppriv                 // smaller than order of point because we don't want pub_key to be base_point
-	randInt := temptrand                 // smaller than order of point because we don't want pub_key to be base_point // does not have to be smaller than order of g
-	pub_key := ec.ScalarMul(g, priv_key) // must be on edwards curve
+	temppriv, _ := rand.Int(rand.Reader, eg.n.Sub(eg.n, big.NewInt(2)))
+	temptrand, _ := rand.Int(rand.Reader, eg.n.Sub(eg.n, big.NewInt(2)))
+	priv_key := temppriv.Add(temppriv,big.NewInt(1))
+	fmt.Println("private key= ",priv_key.String())// smaller than order of point because we don't want pub_key to be base_point
+	randInt := temptrand.Add(temptrand,big.NewInt(1))                 // smaller than order of point because we don't want pub_key to be base_point // does not have to be smaller than order of g
+	pub_key := eg.generatePublicKey(priv_key) // must be on edwards curve
 	fmt.Println("Encrypting?")
 	encoded1, encoded2 := eg.Encrypt(message, pub_key, randInt)
-	fmt.Println("Decrypting?", encoded1, encoded2)
+	fmt.Println("Decrypting?")
 	decrypted := eg.Decrypt(encoded1, encoded2, priv_key)
 	message.PrintPoint()
 	decrypted.PrintPoint()
